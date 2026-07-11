@@ -1,0 +1,12 @@
+src/
+├── components/          # Reusable presentation layout UI blocks
+│   ├── BottomModal.tsx     # Slide-up sliding transaction entry form
+│   ├── Navbar.tsx          # Bottom navigation bar configuration
+│   └── TopHeader.tsx       # App standard branding header strip
+├── views/               # Screen level state routers (The "V" in MVC)
+│   ├── DashboardView.tsx
+│   ├── CalendarView.tsx
+│   └── TransactionsView.tsx
+├── types/               # Type schemas definitions data maps
+│   └── finance.ts
+└── App.tsx              # Main orchestrator router core controller
