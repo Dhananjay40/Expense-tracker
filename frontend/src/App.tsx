@@ -38,25 +38,6 @@ const initialDashboardData: DashboardData = {
   last_transaction: null,
 };
 
-const initialTransactions: Record<string, Transaction[]> = {
-  "2026-06-01": [{ id: '1', category: 'Food & Dining', title: 'Snacks', amount: 390, time: '04:12 PM', type: 'expense' }],
-  "2026-06-02": [{ id: '2', category: 'Salary', title: 'Freelance Payout', amount: 1250, time: '10:00 AM', type: 'credit' }],
-  "2026-06-03": [{ id: '3', category: 'Investment', title: 'Dividend Recieved', amount: 500, time: '11:30 AM', type: 'credit' }],
-  "2026-06-04": [{ id: '4', category: 'Utilities', title: 'Mobile Recharge', amount: 230, time: '01:15 PM', type: 'expense' }],
-  "2026-06-05": [{ id: '5', category: 'Transfer', title: 'From Friend', amount: 850, time: '09:00 PM', type: 'credit' }],
-  "2026-06-07": [{ id: '6', category: 'Investment', title: 'Cashback App', amount: 755, time: '03:40 AM', type: 'credit' }],
-  "2026-06-08": [{ id: '7', category: 'Shopping', title: 'New T-Shirt', amount: 500, time: '07:22 PM', type: 'expense' }],
-  "2026-06-10": [{ id: '8', category: 'Utilities', title: 'Gas Bill Reward', amount: 80, time: '05:50 PM', type: 'credit' }],
-  "2026-06-11": [
-    { id: '9', category: 'Food & Dining', title: 'Lunch at Cafe', amount: 150, time: '12:45 PM', type: 'expense' },
-    { id: '10', category: 'Transport', title: 'Auto Ride', amount: 80, time: '02:15 PM', type: 'expense' },
-    { id: '11', category: 'Food & Dining', title: 'Evening Snacks', amount: 60, time: '06:30 PM', type: 'expense' },
-    { id: '12', category: 'Entertainment', title: 'Movie Ticket', amount: 100, time: '09:10 PM', type: 'expense' }
-  ],
-  "2026-06-18": [{ id: '13', category: 'Shopping', title: 'Shoes procurement', amount: 600, time: '02:00 PM', type: 'expense' }],
-  "2026-06-19": [{ id: '14', category: 'Utilities', title: 'Electricity Bill', amount: 1150, time: '08:15 PM', type: 'expense' }],
-};
-
 export default function App() {
   const [activeTab, setActiveTab] = useState<'home' | 'calendar' | 'transactions'>('home');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -64,11 +45,11 @@ export default function App() {
   const [editingTxId, setEditingTxId] = useState<string | null>(null);
   const [editingDateKey, setEditingDateKey] = useState<string | null>(null);
 
-  const [transactionsState, setTransactionsState] = useState<Record<string, Transaction[]>>(initialTransactions);
+  const [transactionsState, setTransactionsState] = useState<Record<string, Transaction[]>>({});
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({ "2026-06-11": true });
-  const [activeInlineRowMenu, setActiveInlineRowMenu] = useState<string | null>("10");
+  const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
+  const [activeInlineRowMenu, setActiveInlineRowMenu] = useState<string | null>(null);
 
   const [selectedYear] = useState(2026);
   const [selectedMonth, setSelectedMonth] = useState(5);
@@ -91,8 +72,66 @@ export default function App() {
   const [, setUserEmail] = useState<string | null>(localStorage.getItem('userEmail'));
   const [username, setUsername] = useState<string | null>(localStorage.getItem('username'));
 
+  // Notification Toast State
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
   // Dashboard Metrics API State
   const [dashboardMetrics, setDashboardMetrics] = useState<DashboardData>(initialDashboardData);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const fetchTransactionsData = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      const res = await fetch('http://localhost:8000/api/v1/expenses', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const rawExpenses = Array.isArray(data) ? data : data.data || [];
+        
+        const grouped: Record<string, Transaction[]> = {};
+        const accordionState: Record<string, boolean> = {};
+
+        // Fetch today's local date string formatted cleanly as YYYY-MM-DD
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        rawExpenses.forEach((item: any) => {
+          const dateObj = new Date(item.created_at);
+          const dateKey = isNaN(dateObj.getTime()) ? item.created_at.split('T')[0] : dateObj.toISOString().split('T')[0];
+
+          const tx: Transaction = {
+            id: item.id.toString(),
+            category: item.category || 'Food & Dining',
+            title: item.description || 'No Description',
+            amount: Number(item.amount),
+            type: item.type || 'expense',
+            time: isNaN(dateObj.getTime()) ? '12:00 PM' : dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+          };
+
+          if (!grouped[dateKey]) {
+            grouped[dateKey] = [];
+            // Dynamically evaluate: expand ONLY if the date key perfectly matches the current date
+            accordionState[dateKey] = (dateKey === todayStr);
+          }
+          grouped[dateKey].push(tx);
+        });
+
+        setTransactionsState(grouped);
+        setExpandedDates(accordionState);
+      }
+    } catch (error) {
+      console.error("Error syncing transactions list data stream:", error);
+    }
+  };
 
   const fetchDashboardMetrics = async () => {
     const token = localStorage.getItem('token');
@@ -119,10 +158,14 @@ export default function App() {
   useEffect(() => {
     if (username) {
       fetchDashboardMetrics();
+      if (activeTab === 'transactions') {
+        fetchTransactionsData();
+      }
     } else {
       setDashboardMetrics(initialDashboardData);
+      setTransactionsState({});
     }
-  }, [username]);
+  }, [username, activeTab]);
 
   useEffect(() => {
     const now = new Date();
@@ -196,7 +239,9 @@ export default function App() {
   };
 
   const getFriendlyDateLabel = (dateStr: string) => {
-    const [y, m, d] = dateStr.split('-').map(Number);
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    const [y, m, d] = parts.map(Number);
     const dateObj = new Date(y, m - 1, d);
     const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
     const mName = monthsList[dateObj.getMonth()];
@@ -215,7 +260,29 @@ export default function App() {
     setIsModalOpen(true);
   };
 
-  const handleDeleteTransaction = (dateKey: string, txId: string) => {
+  const handleDeleteTransaction = async (dateKey: string, txId: string) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const response = await fetch(`http://localhost:8000/api/v1/expenses/${txId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (response.ok) {
+          showToast("Deleted successfully");
+          if (activeInlineRowMenu === txId) setActiveInlineRowMenu(null);
+          await fetchTransactionsData();
+          await fetchDashboardMetrics();
+          return;
+        }
+      } catch (error) {
+        console.error("Network error deleting expense entry endpoint:", error);
+      }
+    }
+
     const updatedDayTxs = (transactionsState[dateKey] || []).filter(t => t.id !== txId);
     const updatedState = { ...transactionsState };
     if (updatedDayTxs.length === 0) {
@@ -227,18 +294,16 @@ export default function App() {
     if (activeInlineRowMenu === txId) setActiveInlineRowMenu(null);
   };
 
-  // ASYNC FORM SUBMISSION WITH API INTEGRATION
   const handleFormSubmit = async () => {
     if (!amount || !description) return;
 
     const parsedAmount = parseFloat(amount) || 0;
     const token = localStorage.getItem('token');
 
-    // 1. If adding a new expense, intercept and push to the FastAPI backend route
     if (modalMode === 'add') {
       if (token) {
         try {
-          const response = await fetch('http://127.0.0.1:8000/api/v1/expenses', {
+          const response = await fetch('http://localhost:8000/api/v1/expenses', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -248,7 +313,7 @@ export default function App() {
               amount: parsedAmount,
               category: category,
               description: description,
-              payment_method: 'UPI', // Hardcoded to UPI as expected by the backend schema
+              payment_method: 'UPI',
               created_at: customDate
             })
           });
@@ -260,9 +325,34 @@ export default function App() {
           console.error("Network error adding transaction:", error);
         }
       }
+    } else if (modalMode === 'edit' && editingTxId) {
+      if (token) {
+        try {
+          const response = await fetch(`http://localhost:8000/api/v1/expenses/${editingTxId}`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              amount: parsedAmount,
+              category: category,
+              description: description,
+              payment_method: 'UPI',
+              created_at: customDate
+            })
+          });
+          if (response.ok) {
+            showToast("Edited successfully");
+          } else {
+            console.error("Failed to edit transaction on backend infrastructure server context");
+          }
+        } catch (error) {
+          console.error("Network sync logic exception writing operational expense changes:", error);
+        }
+      }
     }
 
-    // 2. Fallback / Update local state for offline view safety
     const updatedState = { ...transactionsState };
 
     if (modalMode === 'edit' && editingTxId && editingDateKey) {
@@ -297,9 +387,11 @@ export default function App() {
     setDescription('');
     setAmount('');
     
-    // 3. Immediately pull updated calculations down to sync layout views instantly
     if (username) {
       await fetchDashboardMetrics();
+      if (activeTab === 'transactions') {
+        await fetchTransactionsData();
+      }
     }
   };
 
@@ -314,6 +406,13 @@ export default function App() {
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
+      {/* FLOATING SUCCESS TOAST NOTIFICATION */}
+      {toastMessage && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] bg-[#00E676] text-black font-semibold text-sm px-6 py-3 rounded-full shadow-xl transition-all duration-300">
+          {toastMessage}
+        </div>
+      )}
+
       <div className="w-full max-w-md h-full max-h-screen bg-black px-6 pt-8 pb-6 flex flex-col justify-between relative overflow-hidden">
         
         {isAuthOpen ? (
@@ -323,7 +422,10 @@ export default function App() {
               setUsername(loggedInUsername);
               const savedEmail = localStorage.getItem('userEmail');
               if (savedEmail) setUserEmail(savedEmail);
-              setTimeout(() => fetchDashboardMetrics(), 50);
+              setTimeout(() => {
+                fetchDashboardMetrics();
+                if (activeTab === 'transactions') fetchTransactionsData();
+              }, 50);
             }}
           />
         ) : (

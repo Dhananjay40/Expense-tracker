@@ -1,0 +1,4 @@
+TODO:
+
+1. last transaction ICON change as per category , current taking food by default
+2. work on calendar part
