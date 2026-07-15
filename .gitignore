@@ -4,3 +4,8 @@ backend/venv/
 backend/.venv/
 **/__pycache__/
 .env
+
+
+backend/expense_tracker.db
+*.db
+backend/expense_tracker.db
