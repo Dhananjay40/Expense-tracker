@@ -4,3 +4,7 @@ backend/venv/
 backend/.venv/
 **/__pycache__/
 .env
+
+# SQLite database files
+backend/expense_tracker.db
+*.db
