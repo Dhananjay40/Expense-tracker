@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from typing import List
+from typing import List, Dict
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import func
+import calendar
+
 
 from app.core.database import get_db
 from app.models.expense import Expense
@@ -13,6 +15,7 @@ from app.schemas.expense import ExpenseCreate, ExpenseResponse
 from app.models.user import User
 from app.api.v1.auth import get_current_user
 from app.schemas.expense import DashboardDataResponse, TimeframeTotals, DailyBarChartItem
+from app.schemas.expense import CalendarQueryRequest, CalendarDataResponse, DailyCalendarGroup
 
 
 # Create an isolated router for expenses
@@ -228,3 +231,48 @@ async def get_dashboard_metrics(
         bar_chart=bar_chart_data,
         last_transaction=last_transaction
     )
+
+
+@app.post("/calendar", response_model=CalendarDataResponse)
+async def get_calendar_monthly_metrics(
+    payload: CalendarQueryRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    # 1. Determine the date boundary ranges for the requested month and year
+    # calendar.monthrange returns (first_day_of_week, number_of_days_in_month)
+    try:
+        _, num_days = calendar.monthrange(payload.year, payload.month)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid month or year values provided.")
+
+    start_date = datetime(payload.year, payload.month, 1, 0, 0, 0, tzinfo=IST_OFFSET)
+    end_date = datetime(payload.year, payload.month, num_days, 23, 59, 59, tzinfo=IST_OFFSET)
+
+    # 2. Query all transactions within that time window for the authenticated user
+    result = await db.execute(
+        select(Expense)
+        .where(
+            Expense.user_id == user.id,
+            Expense.created_at >= start_date,
+            Expense.created_at <= end_date
+        )
+        .order_by(Expense.created_at.asc())
+    )
+    expenses = result.scalars().all()
+
+    # 3. Process database records into target dictionary map grouped by local date string
+    calendar_map: Dict[str, DailyCalendarGroup] = {}
+
+    for exp in expenses:
+        # Convert DB datetime into your local IST format structure string "YYYY-MM-DD"
+        local_date_str = exp.created_at.astimezone(IST_OFFSET).strftime("%Y-%m-%d")
+        
+        if local_date_str not in calendar_map:
+            calendar_map[local_date_str] = DailyCalendarGroup(total=0.0, transactions=[])
+        
+        # Increment totals and push reference mapping item into array cleanly
+        calendar_map[local_date_str].total += float(exp.amount)
+        calendar_map[local_date_str].transactions.append(exp)
+
+    return CalendarDataResponse(data=calendar_map)

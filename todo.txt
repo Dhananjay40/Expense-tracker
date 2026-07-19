@@ -1,0 +1,18 @@
+TODO:
+
+1. Fix: currently taking food by default on last transaction record ✅
+2. Fix: when add transaction is clicked, it is taking 11 june as default date ✅
+3. work on calendar part 
+    - a new api which has following
+        payload: month and year
+        response: {
+            {
+                date: {
+                    total of that date
+                    all transactions,
+                }
+            }
+        }
+4. total spending card (w/m/y) make it slidable toggle
+
+
