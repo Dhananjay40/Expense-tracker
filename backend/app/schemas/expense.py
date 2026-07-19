@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 # This schema defines what data your phone MUST send when creating an expense
 class ExpenseCreate(BaseModel):
@@ -39,3 +39,17 @@ class DashboardDataResponse(BaseModel):
     timeframe_totals: TimeframeTotals
     bar_chart: List[DailyBarChartItem]
     last_transaction: Optional[ExpenseResponse] = None
+
+
+class CalendarQueryRequest(BaseModel):
+    month: int  # 1-12
+    year: int   # e.g., 2026
+
+class DailyCalendarGroup(BaseModel):
+    total: float
+    transactions: List[ExpenseResponse]
+
+
+class CalendarDataResponse(BaseModel):
+    # Dynamic dictionary mapping "YYYY-MM-DD" -> DailyCalendarGroup
+    data: Dict[str, DailyCalendarGroup]

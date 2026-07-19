@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { X, ArrowDown, ArrowUp, ChevronDown, Utensils, Car, ShoppingBag, Zap, Film } from 'lucide-react';
 
 interface BottomModalProps {
@@ -42,6 +42,24 @@ export const BottomModal: React.FC<BottomModalProps> = ({
   selectedMonthName,
   selectedDay,
 }) => {
+  
+  // Hook to catch modal openings and enforce the local current system date fallback
+  useEffect(() => {
+    if (isOpen && modalMode === 'add') {
+      // Generate YYYY-MM-DD template matching local calendar zone configuration safely
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      const formattedCurrentDate = `${year}-${month}-${day}`;
+      
+      // If the string is completely empty or defaults back to the June 11 lock ('2026-06-11' or similar variant), override it
+      if (!customDate || customDate.endsWith('06-11')) {
+        setCustomDate(formattedCurrentDate);
+      }
+    }
+  }, [isOpen, modalMode, setCustomDate]);
+
   const getCategoryIcon = (catName: string) => {
     switch (catName) {
       case 'Travel':
@@ -89,7 +107,7 @@ export const BottomModal: React.FC<BottomModalProps> = ({
                 txType === 'expense' ? 'bg-[#3A46E6] text-white shadow-lg' : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              <TrashIconFallbackIsArrowDown className="w-4 h-4" /> Expense
+              <ArrowDown className="w-4 h-4" /> Expense
             </button>
             <button
               type="button" onClick={() => setTxType('credit')}
@@ -182,5 +200,3 @@ export const BottomModal: React.FC<BottomModalProps> = ({
     </>
   );
 };
-
-const TrashIconFallbackIsArrowDown = ArrowDown;

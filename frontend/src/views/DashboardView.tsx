@@ -1,6 +1,6 @@
 // src/views/DashboardView.tsx
 import React from 'react';
-import { RotateCw, Utensils, HelpCircle, Receipt } from 'lucide-react';
+import { RotateCw, Utensils, Car, ShoppingBag, Zap, Film } from 'lucide-react';
 import { TopHeader } from '../components/TopHeader';
 
 interface DashboardViewProps {
@@ -49,7 +49,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     return "Spent this month";
   };
 
-  // 2. Determine highest bar scale values to balance relative styling constraints dynamically
+  // 2. Resolve the category icon using your exact configuration mapping rules
+  const getCategoryIcon = (catName: string) => {
+    switch (catName) {
+      case 'Travel':
+      case 'Transport': return <Car className="w-5 h-5 text-white" />;
+      case 'Shopping': return <ShoppingBag className="w-5 h-5 text-white" />;
+      case 'Utilities': return <Zap className="w-5 h-5 text-white" />;
+      case 'Entertainment': return <Film className="w-5 h-5 text-white" />;
+      default: return <Utensils className="w-5 h-5 text-white" />;
+    }
+  };
+
+  // 3. Determine highest bar scale values to balance relative styling constraints dynamically
   const maxAmount = Math.max(...metrics.bar_chart.map(b => b.amount), 1);
 
   return (
@@ -161,7 +173,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="w-full bg-gradient-to-r from-[#18227C] via-[#12164A] to-[#0A0D2B] border border-white/5 rounded-[24px] p-5 flex items-center justify-between shadow-2xl relative z-20">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
-                  <Utensils className="w-6 h-6 text-white" />
+                  {getCategoryIcon(metrics.last_transaction.category)}
                 </div>
                 <div>
                   <h4 className="font-medium text-white text-lg tracking-wide">
