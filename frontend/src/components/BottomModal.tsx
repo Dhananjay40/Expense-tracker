@@ -1,5 +1,18 @@
 import React, { useEffect } from 'react';
-import { X, ArrowDown, ArrowUp, ChevronDown, Utensils, Car, ShoppingBag, Zap, Film } from 'lucide-react';
+import { 
+  X, 
+  ArrowDown, 
+  ArrowUp, 
+  ChevronDown, 
+  Utensils, 
+  Car, 
+  ShoppingBag, 
+  Zap, 
+  Film,
+  ShoppingCart,
+  HeartPulse,
+  TrendingUp
+} from 'lucide-react';
 
 interface BottomModalProps {
   isOpen: boolean;
@@ -43,25 +56,38 @@ export const BottomModal: React.FC<BottomModalProps> = ({
   selectedDay,
 }) => {
   
-  // Hook to catch modal openings and enforce the local current system date fallback
+  // Resets date to current system today and enforces expense toggle whenever modal opens in 'add' mode
   useEffect(() => {
     if (isOpen && modalMode === 'add') {
-      // Generate YYYY-MM-DD template matching local calendar zone configuration safely
       const today = new Date();
       const year = today.getFullYear();
       const month = String(today.getMonth() + 1).padStart(2, '0');
       const day = String(today.getDate()).padStart(2, '0');
-      const formattedCurrentDate = `${year}-${month}-${day}`;
-      
-      // If the string is completely empty or defaults back to the June 11 lock ('2026-06-11' or similar variant), override it
-      if (!customDate || customDate.endsWith('06-11')) {
-        setCustomDate(formattedCurrentDate);
-      }
+      setCustomDate(`${year}-${month}-${day}`);
+      setTxType('expense');
     }
-  }, [isOpen, modalMode, setCustomDate]);
+  }, [isOpen, modalMode, setCustomDate, setTxType]);
+
+  // Formats customDate (YYYY-MM-DD) into readable "Month Day" string
+  const getFormattedDateLabel = () => {
+    if (!customDate) return `${selectedMonthName} ${selectedDay}`;
+    
+    const [yearStr, monthStr, dayStr] = customDate.split('-');
+    if (!yearStr || !monthStr || !dayStr) return `${selectedMonthName} ${selectedDay}`;
+
+    const parsedDate = new Date(Number(yearStr), Number(monthStr) - 1, Number(dayStr));
+    if (isNaN(parsedDate.getTime())) return `${selectedMonthName} ${selectedDay}`;
+
+    const monthName = parsedDate.toLocaleString('default', { month: 'long' });
+    const dayNumber = parsedDate.getDate();
+    return `${monthName} ${dayNumber}`;
+  };
 
   const getCategoryIcon = (catName: string) => {
     switch (catName) {
+      case 'Groceries': return <ShoppingCart className="w-5 h-5 text-white" />;
+      case 'Medical': return <HeartPulse className="w-5 h-5 text-white" />;
+      case 'Investment': return <TrendingUp className="w-5 h-5 text-white" />;
       case 'Travel':
       case 'Transport': return <Car className="w-5 h-5 text-white" />;
       case 'Shopping': return <ShoppingBag className="w-5 h-5 text-white" />;
@@ -70,6 +96,17 @@ export const BottomModal: React.FC<BottomModalProps> = ({
       default: return <Utensils className="w-5 h-5 text-white" />;
     }
   };
+
+  const categories = [
+    'Food & Dining',
+    'Groceries',
+    'Transport',
+    'Shopping',
+    'Utilities',
+    'Entertainment',
+    'Medical',
+    'Investment',
+  ];
 
   return (
     <>
@@ -112,7 +149,7 @@ export const BottomModal: React.FC<BottomModalProps> = ({
             <button
               type="button" onClick={() => setTxType('credit')}
               className={`flex-1 py-3 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-all ${
-                txType === 'credit' ? 'bg-[#3A46E6] text-white shadow-lg' : 'text-zinc-400 hover:text-zinc-200'
+                txType === 'credit' ? 'bg-[#00A800] text-white shadow-lg' : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
               <ArrowUp className="w-4 h-4" /> Credit
@@ -135,8 +172,8 @@ export const BottomModal: React.FC<BottomModalProps> = ({
             </button>
 
             {isDropdownOpen && (
-              <div className="absolute left-0 right-0 mt-2 bg-[#17171C] border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden z-60">
-                {['Food & Dining', 'Transport', 'Shopping', 'Utilities', 'Entertainment'].map((cat) => (
+              <div className="absolute left-0 right-0 mt-2 bg-[#17171C] border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden z-60 max-h-60 overflow-y-auto no-scrollbar">
+                {categories.map((cat) => (
                   <button
                     key={cat} type="button"
                     onClick={() => { setCategory(cat); setIsDropdownOpen(false); }}
@@ -193,7 +230,7 @@ export const BottomModal: React.FC<BottomModalProps> = ({
             onClick={onSubmit}
             className="w-full h-14 bg-[#3A46E6] hover:bg-indigo-600 text-white font-semibold text-base rounded-2xl shadow-xl transition-all"
           >
-            {modalMode === 'edit' ? 'Edit Expense' : `Add to ${selectedMonthName} ${selectedDay}`}
+            {modalMode === 'edit' ? 'Edit Expense' : `Add to ${getFormattedDateLabel()}`}
           </button>
         </div>
       </div>
