@@ -1,18 +1,16 @@
 TODO:
 
+
 1. Fix: currently taking food by default on last transaction record ✅
 2. Fix: when add transaction is clicked, it is taking 11 june as default date ✅
 3. work on calendar part 
-    - a new api which has following
-        payload: month and year
-        response: {
-            {
-                date: {
-                    total of that date
-                    all transactions,
-                }
-            }
-        }
-4. total spending card (w/m/y) make it slidable toggle
-
+    - api ✅
+    - integration with UI ✅
+    
+4. total spending card (w/m/y) make it slidable toggle ✅
+5. Add more expense types ✅
+6. when date is changed while adding expense, below present add button should reflect the changed date ✅
+7. if user has changed the date in add expense card then next time when reopned it shouldnt pick the last selected date it should again pick current date ✅
+8. when user logged in/ signed up then/ incorrect login creds these pop msg should come above login/signup button not at the top ✅
+9. in view all transaction, add search functionality using query API
 
