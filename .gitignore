@@ -9,3 +9,4 @@ backend/.venv/
 backend/expense_tracker.db
 *.db
 backend/expense_tracker.db
+backend/expense_tracker.db
