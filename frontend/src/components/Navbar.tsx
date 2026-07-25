@@ -36,7 +36,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex-[2] px-4 flex items-center justify-center">
           <button
             onClick={onAddClick}
-            className="w-full h-[52px] rounded-2xl bg-gradient-to-b from-[#FFA868] via-[#FF5F2E] to-[#D82A00] flex items-center justify-center text-white font-semibold text-base tracking-wider shadow-2xl shadow-orange-600/30 hover:scale-[1.02] active:scale-[0.98] transition-all border border-white/10"
+            className="w-full h-[52px] rounded-2xl bg-gradient-to-b from-[#FFA868] via-[#FF5F2E] to-[#D82A00] flex items-center justify-center text-white font-semibold text-base tracking-wider shadow-lg shadow-orange-600/20 hover:scale-[1.02] active:scale-[0.98] transition-all overflow-hidden relative ring-1 ring-white/20"
           >
             Add
           </button>

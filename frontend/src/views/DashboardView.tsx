@@ -1,6 +1,6 @@
 // src/views/DashboardView.tsx
 import React from 'react';
-import { RotateCw, Utensils, Car, ShoppingBag, Zap, Film } from 'lucide-react';
+import { RotateCw, Utensils, Car, ShoppingBag, Zap, Film, ShoppingCart, HeartPulse, TrendingUp} from 'lucide-react';
 import { TopHeader } from '../components/TopHeader';
 
 interface DashboardViewProps {
@@ -57,12 +57,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       case 'Shopping': return <ShoppingBag className="w-5 h-5 text-white" />;
       case 'Utilities': return <Zap className="w-5 h-5 text-white" />;
       case 'Entertainment': return <Film className="w-5 h-5 text-white" />;
+      case 'Groceries': return <ShoppingCart className="w-5 h-5 text-white" />;
+      case 'Medical': return <HeartPulse className="w-5 h-5 text-white" />;
+      case 'Investment': return <TrendingUp className="w-5 h-5 text-white" />;
       default: return <Utensils className="w-5 h-5 text-white" />;
     }
   };
 
   // 3. Determine highest bar scale values to balance relative styling constraints dynamically
   const maxAmount = Math.max(...metrics.bar_chart.map(b => b.amount), 1);
+
+  // Timeframe options list and active index for sliding pill offset
+  const timeframes: ('W' | 'M' | 'Y')[] = ['W', 'M', 'Y'];
+  const activeIndex = timeframes.indexOf(timeframe);
 
   return (
     <div className="flex-1 flex flex-col justify-between no-scrollbar overflow-y-auto">
@@ -83,17 +90,29 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </button>
           </div>
           <div className="flex justify-between items-end w-full">
-            <div className="flex items-center gap-2 text-sm font-semibold bg-black/40 p-1 rounded-full border border-white/5">
-              {['W', 'M', 'Y'].map((t) => (
+            
+            {/* SLIDABLE TIMEFRAME TOGGLE */}
+            <div className="relative flex items-center bg-black/50 p-1 rounded-full border border-white/10 w-[112px] h-10">
+              {/* Sliding Active White Pill */}
+              <div 
+                className="absolute top-1 bottom-1 w-8 bg-white rounded-full transition-transform duration-300 ease-out shadow-md"
+                style={{ transform: `translateX(${activeIndex * 32}px)` }}
+              />
+              
+              {/* Toggle Option Buttons */}
+              {timeframes.map((t) => (
                 <button
                   key={t}
-                  onClick={() => setTimeframe(t as any)}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${timeframe === t ? 'bg-white text-indigo-950 shadow-md' : 'text-indigo-600 hover:text-indigo-400'}`}
+                  onClick={() => setTimeframe(t)}
+                  className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center font-semibold text-xs transition-colors duration-200 ${
+                    timeframe === t ? 'text-indigo-950 font-bold' : 'text-indigo-500 hover:text-indigo-300'
+                  }`}
                 >
                   {t}
                 </button>
               ))}
             </div>
+
             <p className="text-zinc-300 text-sm font-light tracking-wide pb-1.5 pr-1">{getDisplayLabel()}</p>
           </div>
         </div>
@@ -118,7 +137,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             {/* DYNAMIC BAR GRAPH RENDERING */}
             <div className="w-full flex items-end justify-between h-[135px] relative z-10 pb-[1px]">
               {metrics.bar_chart.map((item, idx) => {
-                // Calculate responsive matching block height percentages cleanly
                 const heightPercentage = (item.amount / maxAmount) * 110;
                 const finalHeight = Math.max(heightPercentage, item.amount > 0 ? 15 : 0);
 
@@ -141,7 +159,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
 
             <div className="w-full flex justify-between mt-2 relative z-10">
-              {/* Fallback to bar data timeline tags directly if sync delay limits match layout options */}
               {(daysArray.length === metrics.bar_chart.length ? daysArray : metrics.bar_chart.map(b => ({ dayLabel: b.date_label, isCurrent: b.date_label.includes("10th") }))).map((dayData, index) => (
                 <div key={index} className="flex-1 flex justify-center">
                   <span className={`text-[11px] font-normal tracking-tight ${
@@ -170,7 +187,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
         <div className="relative pt-2">
           {metrics.last_transaction ? (
-            <div className="w-full bg-gradient-to-r from-[#18227C] via-[#12164A] to-[#0A0D2B] border border-white/5 rounded-[24px] p-5 flex items-center justify-between shadow-2xl relative z-20">
+            <div className="w-full bg-gradient-to-r from-[#18227C] via-[#12164A] to-[#0A0D2B] border border-zinc-800/60 rounded-[24px] p-5 flex items-center justify-between shadow-2xl relative z-20">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
                   {getCategoryIcon(metrics.last_transaction.category)}
@@ -191,7 +208,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           )}
 
-          <div className="w-[90%] mx-auto bg-gradient-to-r from-[#1A258C] to-[#0A0D2F] border-x border-b border-white/10 h-12 rounded-b-[24px] shadow-xl mt-[-16px] opacity-40 blur-[0.4px] relative z-10 pointer-events-none" />
+          <div className="w-[90%] mx-auto bg-gradient-to-r from-[#1A258C] to-[#0A0D2F] border-b border-white/5 h-12 rounded-b-[24px] shadow-xl mt-[-16px] opacity-40 blur-[0.4px] relative z-10 pointer-events-none" />
         </div>
       </div>
     </div>

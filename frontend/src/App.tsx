@@ -9,9 +9,11 @@ import { Navbar } from './components/Navbar';
 import { BottomModal } from './components/BottomModal';
 
 const monthsList = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
 ];
+
+const yearsList = [2024, 2025, 2026, 2027];
 
 interface DashboardData {
   timeframe_totals: { week: number; month: number; year: number };
@@ -51,9 +53,10 @@ export default function App() {
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
   const [activeInlineRowMenu, setActiveInlineRowMenu] = useState<string | null>(null);
 
-  const [selectedYear] = useState(2026);
-  const [selectedMonth, setSelectedMonth] = useState(5);
-  const [selectedDay, setSelectedDay] = useState(11);
+  // Default to current date context (July 2026)
+  const [selectedYear, setSelectedYear] = useState(2026);
+  const [selectedMonth, setSelectedMonth] = useState(6); // 0-indexed: 6 is July
+  const [selectedDay, setSelectedDay] = useState(25);
   const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState(false);
 
   const [txType, setTxType] = useState<'expense' | 'credit'>('expense');
@@ -61,10 +64,10 @@ export default function App() {
   const [category, setCategory] = useState('Food & Dining');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
-  const [customDate, setCustomDate] = useState('2026-06-11');
+  const [customDate, setCustomDate] = useState('2026-07-25');
 
   const [timeframe, setTimeframe] = useState<'W' | 'M' | 'Y'>('M');
-  const [currentMonthName, setCurrentMonthName] = useState('June');
+  const [currentMonthName, setCurrentMonthName] = useState('July');
   const [daysArray, setDaysArray] = useState<{ dayLabel: string; isCurrent: boolean }[]>([]);
 
   // User Authentication State
@@ -83,12 +86,65 @@ export default function App() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  // Dedicated fetcher for /api/v1/expenses/calendar endpoint
+  const fetchCalendarData = async (monthNum: number, yearNum: number) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      const res = await fetch('http://127.0.0.1:8000/api/v1/expenses/calendar', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          month: monthNum, // e.g. 7 for July
+          year: yearNum
+        })
+      });
+
+      if (res.ok) {
+        const responseData = await res.json();
+        const calendarMap = responseData.data || {};
+        
+        const grouped: Record<string, Transaction[]> = {};
+        const accordionState: Record<string, boolean> = {};
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        Object.entries(calendarMap).forEach(([dateKey, dayData]: [string, any]) => {
+          const rawList = dayData.transactions || [];
+          grouped[dateKey] = rawList.map((item: any) => {
+            const dateObj = new Date(item.created_at);
+            return {
+              id: item.id.toString(),
+              category: item.category || 'Food & Dining',
+              title: item.description || 'No Description',
+              amount: Number(item.amount),
+              type: item.type || 'expense',
+              time: isNaN(dateObj.getTime())
+                ? '12:00 PM'
+                : dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+            };
+          });
+
+          accordionState[dateKey] = (dateKey === todayStr);
+        });
+
+        setTransactionsState(grouped);
+        setExpandedDates(accordionState);
+      }
+    } catch (error) {
+      console.error("Error fetching calendar expenses:", error);
+    }
+  };
+
   const fetchTransactionsData = async () => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
     try {
-      const res = await fetch('http://localhost:8000/api/v1/expenses', {
+      const res = await fetch('http://127.0.0.1:8000/api/v1/expenses', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -100,8 +156,6 @@ export default function App() {
         
         const grouped: Record<string, Transaction[]> = {};
         const accordionState: Record<string, boolean> = {};
-
-        // Fetch today's local date string formatted cleanly as YYYY-MM-DD
         const todayStr = new Date().toISOString().split('T')[0];
 
         rawExpenses.forEach((item: any) => {
@@ -119,7 +173,6 @@ export default function App() {
 
           if (!grouped[dateKey]) {
             grouped[dateKey] = [];
-            // Dynamically evaluate: expand ONLY if the date key perfectly matches the current date
             accordionState[dateKey] = (dateKey === todayStr);
           }
           grouped[dateKey].push(tx);
@@ -140,7 +193,7 @@ export default function App() {
       return;
     }
     try {
-      const res = await fetch('http://localhost:8000/api/v1/expenses/dashboard', {
+      const res = await fetch('http://127.0.0.1:8000/api/v1/expenses/dashboard', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -155,10 +208,13 @@ export default function App() {
     }
   };
 
+  // Primary navigation / view tab sync effect
   useEffect(() => {
     if (username) {
       fetchDashboardMetrics();
-      if (activeTab === 'transactions') {
+      if (activeTab === 'calendar') {
+        fetchCalendarData(selectedMonth + 1, selectedYear);
+      } else if (activeTab === 'transactions') {
         fetchTransactionsData();
       }
     } else {
@@ -166,6 +222,13 @@ export default function App() {
       setTransactionsState({});
     }
   }, [username, activeTab]);
+
+  // Refetch calendar endpoint whenever user changes month or year inside Calendar tab
+  useEffect(() => {
+    if (username && activeTab === 'calendar') {
+      fetchCalendarData(selectedMonth + 1, selectedYear);
+    }
+  }, [selectedMonth, selectedYear]);
 
   useEffect(() => {
     const now = new Date();
@@ -228,6 +291,17 @@ export default function App() {
     return matrix;
   };
 
+  const monthlyTotalSpent = Object.entries(transactionsState).reduce((acc, [dateKey, txs]) => {
+    const [y, m] = dateKey.split('-').map(Number);
+    if (y === selectedYear && m === selectedMonth + 1) {
+      const dayExpense = txs
+        .filter(t => t.type === 'expense')
+        .reduce((sum, t) => sum + t.amount, 0);
+      return acc + dayExpense;
+    }
+    return acc;
+  }, 0);
+
   const currentSelectedKey = getFormattedDateKey(selectedDay);
   const activeDayTransactions = transactionsState[currentSelectedKey] || [];
   const activeDayTotalSpent = activeDayTransactions
@@ -264,7 +338,7 @@ export default function App() {
     const token = localStorage.getItem('token');
     if (token) {
       try {
-        const response = await fetch(`http://localhost:8000/api/v1/expenses/${txId}`, {
+        const response = await fetch(`http://127.0.0.1:8000/api/v1/expenses/${txId}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -274,7 +348,11 @@ export default function App() {
         if (response.ok) {
           showToast("Deleted successfully");
           if (activeInlineRowMenu === txId) setActiveInlineRowMenu(null);
-          await fetchTransactionsData();
+          if (activeTab === 'calendar') {
+            await fetchCalendarData(selectedMonth + 1, selectedYear);
+          } else {
+            await fetchTransactionsData();
+          }
           await fetchDashboardMetrics();
           return;
         }
@@ -303,7 +381,7 @@ export default function App() {
     if (modalMode === 'add') {
       if (token) {
         try {
-          const response = await fetch('http://localhost:8000/api/v1/expenses', {
+          await fetch('http://127.0.0.1:8000/api/v1/expenses', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -317,10 +395,6 @@ export default function App() {
               created_at: customDate
             })
           });
-
-          if (!response.ok) {
-            console.error("Failed to add transaction to server");
-          }
         } catch (error) {
           console.error("Network error adding transaction:", error);
         }
@@ -328,7 +402,7 @@ export default function App() {
     } else if (modalMode === 'edit' && editingTxId) {
       if (token) {
         try {
-          const response = await fetch(`http://localhost:8000/api/v1/expenses/${editingTxId}`, {
+          const response = await fetch(`http://127.0.0.1:8000/api/v1/expenses/${editingTxId}`, {
             method: 'PUT',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -344,8 +418,6 @@ export default function App() {
           });
           if (response.ok) {
             showToast("Edited successfully");
-          } else {
-            console.error("Failed to edit transaction on backend infrastructure server context");
           }
         } catch (error) {
           console.error("Network sync logic exception writing operational expense changes:", error);
@@ -353,35 +425,6 @@ export default function App() {
       }
     }
 
-    const updatedState = { ...transactionsState };
-
-    if (modalMode === 'edit' && editingTxId && editingDateKey) {
-      updatedState[editingDateKey] = (updatedState[editingDateKey] || []).filter(t => t.id !== editingTxId);
-      if (updatedState[editingDateKey].length === 0) delete updatedState[editingDateKey];
-
-      const updatedTx: Transaction = {
-        id: editingTxId,
-        category,
-        title: description,
-        amount: parsedAmount,
-        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-        type: txType
-      };
-
-      updatedState[customDate] = [updatedTx, ...(updatedState[customDate] || [])];
-    } else {
-      const newTx: Transaction = {
-        id: Math.random().toString(36).substr(2, 9),
-        category,
-        title: description,
-        amount: parsedAmount,
-        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-        type: txType
-      };
-      updatedState[customDate] = [newTx, ...(updatedState[customDate] || [])];
-    }
-
-    setTransactionsState(updatedState);
     setIsModalOpen(false);
     setIsDropdownOpen(false);
     setDescription('');
@@ -389,7 +432,9 @@ export default function App() {
     
     if (username) {
       await fetchDashboardMetrics();
-      if (activeTab === 'transactions') {
+      if (activeTab === 'calendar') {
+        await fetchCalendarData(selectedMonth + 1, selectedYear);
+      } else if (activeTab === 'transactions') {
         await fetchTransactionsData();
       }
     }
@@ -406,7 +451,6 @@ export default function App() {
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
-      {/* FLOATING SUCCESS TOAST NOTIFICATION */}
       {toastMessage && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] bg-[#00E676] text-black font-semibold text-sm px-6 py-3 rounded-full shadow-xl transition-all duration-300">
           {toastMessage}
@@ -424,7 +468,8 @@ export default function App() {
               if (savedEmail) setUserEmail(savedEmail);
               setTimeout(() => {
                 fetchDashboardMetrics();
-                if (activeTab === 'transactions') fetchTransactionsData();
+                if (activeTab === 'calendar') fetchCalendarData(selectedMonth + 1, selectedYear);
+                else if (activeTab === 'transactions') fetchTransactionsData();
               }, 50);
             }}
           />
@@ -451,9 +496,12 @@ export default function App() {
                 selectedDay={selectedDay}
                 setSelectedDay={setSelectedDay}
                 setSelectedMonth={setSelectedMonth}
+                setSelectedYear={setSelectedYear}
                 isMonthDropdownOpen={isMonthDropdownOpen}
                 setIsMonthDropdownOpen={setIsMonthDropdownOpen}
                 monthsList={monthsList}
+                yearsList={yearsList}
+                monthlyTotalSpent={monthlyTotalSpent}
                 generateGridDays={generateGridDays}
                 getDaySummary={getDaySummary}
                 activeDayTransactions={activeDayTransactions}

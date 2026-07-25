@@ -86,21 +86,6 @@ export function AuthView({ onClose, onAuthSuccess }: AuthViewProps) {
 
   return (
     <div className="w-full h-full flex flex-col justify-between no-scrollbar overflow-y-auto pb-4 relative">
-      {/* Floating Success Notification */}
-      {successMessage && (
-        <div className="absolute top-16 left-4 right-4 p-3 bg-emerald-950/90 border border-emerald-500/40 rounded-xl flex items-center gap-2 animate-fadeIn z-50 shadow-xl backdrop-blur-md">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-emerald-400 shrink-0"><path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clipRule="evenodd" /></svg>
-          <span className="text-xs font-normal text-emerald-400 tracking-wide">{successMessage}</span>
-        </div>
-      )}
-
-      {/* Floating Error Notification */}
-      {errorMessage && (
-        <div className="absolute top-16 left-4 right-4 p-3 bg-rose-950/90 border border-rose-500/40 rounded-xl flex items-center gap-2 animate-fadeIn z-50 shadow-xl backdrop-blur-md">
-          <span className="text-xs font-normal text-rose-400 tracking-wide">{errorMessage}</span>
-        </div>
-      )}
-
       <div>
         {/* Header Section */}
         <div className="flex justify-between items-start mt-2">
@@ -208,7 +193,22 @@ export function AuthView({ onClose, onAuthSuccess }: AuthViewProps) {
       </div>
 
       {/* Footer Submission */}
-      <div className="mt-8">
+      <div className="mt-6">
+        {/* Success Notification - Positioned above button */}
+        {successMessage && (
+          <div className="mb-10 p-3 bg-emerald-950/90 border border-emerald-500/40 rounded-xl flex items-center gap-2 animate-fadeIn shadow-xl backdrop-blur-md">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-emerald-400 shrink-0"><path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clipRule="evenodd" /></svg>
+            <span className="text-xs font-normal text-emerald-400 tracking-wide">{successMessage}</span>
+          </div>
+        )}
+
+        {/* Error Notification - Positioned above button */}
+        {errorMessage && (
+          <div className="mb-10 p-3 bg-rose-950/90 border border-rose-500/40 rounded-xl flex items-center gap-2 animate-fadeIn shadow-xl backdrop-blur-md">
+            <span className="text-xs font-normal text-rose-400 tracking-wide">{errorMessage}</span>
+          </div>
+        )}
+
         <button 
           onClick={handleSubmitAction}
           disabled={isLoading}
