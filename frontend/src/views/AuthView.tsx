@@ -45,7 +45,7 @@ export function AuthView({ onClose, onAuthSuccess }: AuthViewProps) {
       console.log("Attempting network request to backend...");
       if (authMode === 'signup') {
         // Registration payload matching UserAuth schema
-        await apiRequest('/auth/register', {
+        await apiRequest('/api/v1/auth/register', {
           method: 'POST',
           body: JSON.stringify({ 
             username: usernameInput, 
@@ -59,7 +59,7 @@ export function AuthView({ onClose, onAuthSuccess }: AuthViewProps) {
         setUsernameInput('');
       } else {
         // Login payload matching adaptive UserLogin schema
-        const data = await apiRequest('/auth/login', {
+        const data = await apiRequest('/api/v1/auth/login', {
           method: 'POST',
           body: JSON.stringify({ 
             identifier: emailInput, // Pass the single input box value directly
