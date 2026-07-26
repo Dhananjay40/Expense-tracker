@@ -47,7 +47,7 @@ export default function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
   const [editingTxId, setEditingTxId] = useState<string | null>(null);
-  const [editingDateKey, setEditingDateKey] = useState<string | null>(null);
+  // const [editingDateKey, setEditingDateKey] = useState<string | null>(null);
 
   const [transactionsState, setTransactionsState] = useState<Record<string, Transaction[]>>({});
 
@@ -327,7 +327,7 @@ export default function App() {
   const handleOpenEditModal = (dateKey: string, tx: Transaction) => {
     setModalMode('edit');
     setEditingTxId(tx.id);
-    setEditingDateKey(dateKey);
+    // setEditingDateKey(dateKey);
     setTxType(tx.type);
     setCategory(tx.category);
     setDescription(tx.title);
@@ -464,7 +464,7 @@ export default function App() {
         {isAuthOpen ? (
           <AuthView 
             onClose={() => setIsAuthOpen(false)} 
-            onAuthSuccess={(loggedInUsername) => {
+            onAuthSuccess={(loggedInUsername: string) => {
               setUsername(loggedInUsername);
               const savedEmail = localStorage.getItem('userEmail');
               if (savedEmail) setUserEmail(savedEmail);

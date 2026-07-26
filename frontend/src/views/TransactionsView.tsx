@@ -1,6 +1,6 @@
 import React from 'react';
 import { Search, SlidersHorizontal, ChevronUp, ChevronDown, Edit2, Trash2, Car, ShoppingBag, Zap, Film, Utensils } from 'lucide-react';
-import { Transaction } from '../types/finance';
+import type { Transaction } from '../types/finance';
 import { TopHeader } from '../components/TopHeader';
 
 interface TransactionsViewProps {
