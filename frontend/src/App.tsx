@@ -474,6 +474,16 @@ export default function App() {
                 else if (activeTab === 'transactions') fetchTransactionsData();
               }, 50);
             }}
+            onLogout={() => {
+              setUsername(null); // Clear app user state
+              setUserEmail(null);
+              localStorage.removeItem('token'); // Clear token from localStorage
+              localStorage.removeItem('userEmail');
+              localStorage.removeItem('username');
+              setDashboardMetrics(initialDashboardData);
+              setTransactionsState({});
+              setActiveTab('home');
+            }}
           />
         ) : (
           <>
