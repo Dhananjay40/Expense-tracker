@@ -8,6 +8,8 @@ import { AuthView } from './views/AuthView';
 import { Navbar } from './components/Navbar';
 import { BottomModal } from './components/BottomModal';
 
+import { API_BASE_URL } from './config/api';
+
 const monthsList = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
@@ -92,7 +94,7 @@ export default function App() {
     if (!token) return;
 
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/v1/expenses/calendar', {
+      const res = await fetch(`${API_BASE_URL}/api/v1/expenses/calendar`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -144,7 +146,7 @@ export default function App() {
     if (!token) return;
 
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/v1/expenses', {
+      const res = await fetch(`${API_BASE_URL}/api/v1/expenses`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -193,7 +195,7 @@ export default function App() {
       return;
     }
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/v1/expenses/dashboard', {
+      const res = await fetch(`${API_BASE_URL}/api/v1/expenses/dashboard`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -338,7 +340,7 @@ export default function App() {
     const token = localStorage.getItem('token');
     if (token) {
       try {
-        const response = await fetch(`http://127.0.0.1:8000/api/v1/expenses/${txId}`, {
+        const response = await fetch(`${API_BASE_URL}/api/v1/expenses/${txId}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -381,7 +383,7 @@ export default function App() {
     if (modalMode === 'add') {
       if (token) {
         try {
-          await fetch('http://127.0.0.1:8000/api/v1/expenses', {
+          await fetch(`${API_BASE_URL}/api/v1/expenses`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -402,7 +404,7 @@ export default function App() {
     } else if (modalMode === 'edit' && editingTxId) {
       if (token) {
         try {
-          const response = await fetch(`http://127.0.0.1:8000/api/v1/expenses/${editingTxId}`, {
+          const response = await fetch(`${API_BASE_URL}/api/v1/expenses/${editingTxId}`, {
             method: 'PUT',
             headers: {
               'Authorization': `Bearer ${token}`,
