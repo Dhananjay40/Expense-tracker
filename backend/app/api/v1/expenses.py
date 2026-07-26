@@ -50,15 +50,16 @@ async def create_expense(
     else:
         transaction_time = datetime.now(timezone.utc).astimezone(IST_OFFSET)
 
-
+    # Strip tzinfo so naive IST datetime is saved into DB
     transaction_time = transaction_time.replace(tzinfo=None)
+    
     # Convert Pydantic data into an actual SQLAlchemy Database Model object
     db_expense = Expense(
         amount=expense_in.amount,
         category=expense_in.category,
         description=expense_in.description,
         payment_method=expense_in.payment_method,
-        user_id = user.id,
+        user_id=user.id,
         created_at=transaction_time
     )
     
@@ -152,7 +153,7 @@ async def delete_expense(
 
 
 
-#DASHBOARD METRICS ENDPOINT: Fetches grouped aggregate statistics
+# DASHBOARD METRICS ENDPOINT: Fetches grouped aggregate statistics
 @app.get("/dashboard", response_model=DashboardDataResponse)
 async def get_dashboard_metrics(
         db: AsyncSession = Depends(get_db),
@@ -161,9 +162,9 @@ async def get_dashboard_metrics(
     today = datetime.now(timezone.utc).astimezone(IST_OFFSET).date()
     
     # --- 1. Compute Timeframe Totals (Week, Month, Year) ---
-    start_of_week = today - timedelta(days=today.weekday()) # Monday start
-    start_of_month = today.replace(day=1)
-    start_of_year = today.replace(month=1, day=1)
+    start_of_week = datetime.combine(today - timedelta(days=today.weekday()), datetime.min.time())
+    start_of_month = datetime.combine(today.replace(day=1), datetime.min.time())
+    start_of_year = datetime.combine(today.replace(month=1, day=1), datetime.min.time())
     
     # Query Week Total
     week_res = await db.execute(
@@ -241,8 +242,6 @@ async def get_calendar_monthly_metrics(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
-    # 1. Determine the date boundary ranges for the requested month and year
-    # calendar.monthrange returns (first_day_of_week, number_of_days_in_month)
     try:
         _, num_days = calendar.monthrange(payload.year, payload.month)
     except ValueError:
@@ -251,7 +250,6 @@ async def get_calendar_monthly_metrics(
     start_date = datetime(payload.year, payload.month, 1, 0, 0, 0)
     end_date = datetime(payload.year, payload.month, num_days, 23, 59, 59)
 
-    # 2. Query all transactions within that time window for the authenticated user
     result = await db.execute(
         select(Expense)
         .where(
@@ -263,17 +261,18 @@ async def get_calendar_monthly_metrics(
     )
     expenses = result.scalars().all()
 
-    # 3. Process database records into target dictionary map grouped by local date string
     calendar_map: Dict[str, DailyCalendarGroup] = {}
 
     for exp in expenses:
-        # Convert DB datetime into your local IST format structure string "YYYY-MM-DD"
-        local_date_str = exp.created_at.astimezone(IST_OFFSET).strftime("%Y-%m-%d")
+        # Get YYYY-MM-DD directly from the saved naive IST timestamp
+        if isinstance(exp.created_at, datetime):
+            local_date_str = exp.created_at.strftime("%Y-%m-%d")
+        else:
+            local_date_str = str(exp.created_at).split("T")[0]
         
         if local_date_str not in calendar_map:
             calendar_map[local_date_str] = DailyCalendarGroup(total=0.0, transactions=[])
         
-        # Increment totals and push reference mapping item into array cleanly
         calendar_map[local_date_str].total += float(exp.amount)
         calendar_map[local_date_str].transactions.append(exp)
 

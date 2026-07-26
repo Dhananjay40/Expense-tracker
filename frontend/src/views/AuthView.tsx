@@ -5,12 +5,16 @@ import { apiRequest } from '../utils/api';
 interface AuthViewProps {
   onClose: () => void;
   onAuthSuccess: (username: string, email?: string) => void;
+  onLogout?: () => void; // Added callback to trigger parent app state cleanup if needed
 }
 
-export function AuthView({ onClose, onAuthSuccess }: AuthViewProps) {
+export function AuthView({ onClose, onAuthSuccess, onLogout }: AuthViewProps) {
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [showPassword, setShowPassword] = useState(false);
   
+  // Check if a user session exists in local storage
+  const isLoggedIn = Boolean(localStorage.getItem('token') || localStorage.getItem('username'));
+
   // Input fields matching backend schemas
   const [usernameInput, setUsernameInput] = useState('');
   const [emailInput, setEmailInput] = useState('');
@@ -27,8 +31,26 @@ export function AuthView({ onClose, onAuthSuccess }: AuthViewProps) {
     }
   }, [successMessage]);
 
+  const handleLogout = () => {
+    // 1. Remove all stored user session data
+    localStorage.removeItem('token');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('username');
+
+    // 2. Clear local input states
+    setUsernameInput('');
+    setEmailInput('');
+    setPasswordInput('');
+
+    setSuccessMessage('Logged out successfully!');
+
+    // 3. Trigger parent logout handler if provided
+    if (onLogout) {
+      onLogout();
+    }
+  };
+
   const handleSubmitAction = async () => {
-    // 1. Structural Guard Checks based on Mode
     if (authMode === 'signup' && (!usernameInput || !emailInput || !passwordInput)) {
       setErrorMessage('Please fill in all fields (Username, Email, and Password).');
       return;
@@ -42,9 +64,7 @@ export function AuthView({ onClose, onAuthSuccess }: AuthViewProps) {
     setIsLoading(true);
 
     try {
-      console.log("Attempting network request to backend...");
       if (authMode === 'signup') {
-        // Registration payload matching UserAuth schema
         await apiRequest('/api/v1/auth/register', {
           method: 'POST',
           body: JSON.stringify({ 
@@ -58,11 +78,10 @@ export function AuthView({ onClose, onAuthSuccess }: AuthViewProps) {
         setPasswordInput('');
         setUsernameInput('');
       } else {
-        // Login payload matching adaptive UserLogin schema
         const data = await apiRequest('/api/v1/auth/login', {
           method: 'POST',
           body: JSON.stringify({ 
-            identifier: emailInput, // Pass the single input box value directly
+            identifier: emailInput,
             password: passwordInput 
           }),
         });
@@ -127,8 +146,6 @@ export function AuthView({ onClose, onAuthSuccess }: AuthViewProps) {
 
         {/* Form Inputs */}
         <div className="space-y-4">
-          
-          {/* USERNAME FIELD (Only shows on Registration / Signup Mode) */}
           {authMode === 'signup' && (
             <div>
               <label className="block text-xs text-gray-400 font-light mb-2 pl-1">Username</label>
@@ -147,7 +164,6 @@ export function AuthView({ onClose, onAuthSuccess }: AuthViewProps) {
             </div>
           )}
 
-          {/* DYNAMIC FIELD (Acts as pure Email on Signup, or Identifier on Login) */}
           <div>
             <label className="block text-xs text-gray-400 font-light mb-2 pl-1">
               {authMode === 'login' ? 'Username or Email' : 'Email'}
@@ -166,7 +182,6 @@ export function AuthView({ onClose, onAuthSuccess }: AuthViewProps) {
             </div>
           </div>
 
-          {/* PASSWORD FIELD */}
           <div>
             <label className="block text-xs text-gray-400 font-light mb-2 pl-1">Password</label>
             <div className="relative flex items-center">
@@ -193,22 +208,23 @@ export function AuthView({ onClose, onAuthSuccess }: AuthViewProps) {
       </div>
 
       {/* Footer Submission */}
-      <div className="mt-6">
-        {/* Success Notification - Positioned above button */}
+      <div className="mt-6 space-y-3">
+        {/* Success Notification */}
         {successMessage && (
-          <div className="mb-10 p-3 bg-emerald-950/90 border border-emerald-500/40 rounded-xl flex items-center gap-2 animate-fadeIn shadow-xl backdrop-blur-md">
+          <div className="p-3 bg-emerald-950/90 border border-emerald-500/40 rounded-xl flex items-center gap-2 animate-fadeIn shadow-xl backdrop-blur-md">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-emerald-400 shrink-0"><path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clipRule="evenodd" /></svg>
             <span className="text-xs font-normal text-emerald-400 tracking-wide">{successMessage}</span>
           </div>
         )}
 
-        {/* Error Notification - Positioned above button */}
+        {/* Error Notification */}
         {errorMessage && (
-          <div className="mb-10 p-3 bg-rose-950/90 border border-rose-500/40 rounded-xl flex items-center gap-2 animate-fadeIn shadow-xl backdrop-blur-md">
+          <div className="p-3 bg-rose-950/90 border border-rose-500/40 rounded-xl flex items-center gap-2 animate-fadeIn shadow-xl backdrop-blur-md">
             <span className="text-xs font-normal text-rose-400 tracking-wide">{errorMessage}</span>
           </div>
         )}
 
+        {/* Primary Action Button (Login / Sign Up) */}
         <button 
           onClick={handleSubmitAction}
           disabled={isLoading}
@@ -216,6 +232,17 @@ export function AuthView({ onClose, onAuthSuccess }: AuthViewProps) {
         >
           {isLoading ? 'Processing...' : authMode === 'login' ? 'Login' : 'Sign up'}
         </button>
+
+        {/* Red Logout Button (Displayed below Login button when session active or logged in) */}
+        {isLoggedIn && (
+          <button 
+            type="button"
+            onClick={handleLogout}
+            className="w-full mt-10 bg-gradient-to-b from-[#DC2626] via-[#880808] to-[#2D0607] hover:from-[#EF4444] hover:to-[#3B0708] text-white rounded-2xl py-3.5 font-medium tracking-wide shadow-2xl active:scale-[0.99] transition-all "
+          >
+            Logout
+          </button>
+        )}
 
         <div className="flex items-center my-4 opacity-20">
           <div className="flex-1 h-[1px] bg-gray-800"></div>
