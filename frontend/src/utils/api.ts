@@ -1,5 +1,5 @@
 // src/utils/api.ts
-const BASE_URL = 'http://127.0.0.1:8000/api/v1';
+import { API_BASE_URL } from '../config/api';
 
 export async function apiRequest(endpoint: string, options: RequestInit = {}) {
   const token = localStorage.getItem('token');
@@ -10,7 +10,7 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
     ...options.headers,
   };
 
-  const response = await fetch(`${BASE_URL}${endpoint}`, { ...options, headers });
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, { ...options, headers });
   
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
