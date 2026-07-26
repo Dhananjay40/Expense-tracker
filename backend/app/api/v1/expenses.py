@@ -50,6 +50,8 @@ async def create_expense(
     else:
         transaction_time = datetime.now(timezone.utc).astimezone(IST_OFFSET)
 
+
+    transaction_time = transaction_time.replace(tzinfo=None)
     # Convert Pydantic data into an actual SQLAlchemy Database Model object
     db_expense = Expense(
         amount=expense_in.amount,
@@ -246,8 +248,8 @@ async def get_calendar_monthly_metrics(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid month or year values provided.")
 
-    start_date = datetime(payload.year, payload.month, 1, 0, 0, 0, tzinfo=IST_OFFSET)
-    end_date = datetime(payload.year, payload.month, num_days, 23, 59, 59, tzinfo=IST_OFFSET)
+    start_date = datetime(payload.year, payload.month, 1, 0, 0, 0)
+    end_date = datetime(payload.year, payload.month, num_days, 23, 59, 59)
 
     # 2. Query all transactions within that time window for the authenticated user
     result = await db.execute(
