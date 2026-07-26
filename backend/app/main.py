@@ -34,6 +34,7 @@ app.include_router(auth_router, prefix="/api/v1/auth", tags=["Authentication"])
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "https://spenditto.vercel.app/"
 ]
 
 app.add_middleware(
